@@ -1,7 +1,7 @@
 # eagerly
 
-Caches values in advance and asyncronously refreshes the value
-at a pre-determined frequency. The cache is backed by [ArcSwap](https://docs.rs/arc-swap/0.4.7/arc_swap/)
+Caches asyncronously retrieved values and refreshes them in the background
+at a pre-determined interval. The cache is backed by [ArcSwap](https://docs.rs/arc-swap/0.4.7/arc_swap/)
 which provides fast, lock-free reads.
 
 ## Example Usage
@@ -9,12 +9,20 @@ which provides fast, lock-free reads.
 ```rust
   let user_ids = Cache<Vec<u32>, _> =
     cache(|| async {
-        vec![1,2,3] // expensive database call happens here
+        let user_ids = database_call().await();
+        //
     })
       .frequency(Duration::from_secs(60 * 3))
       .load()
       .await;
-
-  assert_eq!(**user_ids.read(), vec![1,2,3])
 ```
 
+[Cache](struct.Cache.html) is thread-safe and implements [Clone](std::marker::Clone), which provides a
+replica pointing to the same underlying storage.
+
+```rust
+std::thread::spawn(|| {
+    let user_ids = user_ids.clone();
+    // ^ receives same updates
+});
+```
