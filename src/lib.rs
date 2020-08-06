@@ -7,15 +7,23 @@
 //! ```ignore
 //!   let user_ids = Cache<Vec<u32>, _> =
 //!     cache(|| async {
-//!         vec![1,2,3] // expensive database call happens here
+//!         let user_ids = database_call().await();
+//!         //
 //!     })
 //!       .frequency(Duration::from_secs(60 * 3))
 //!       .load()
 //!       .await;
-//!
-//!   assert_eq!(**user_ids.read(), vec![1,2,3])
 //! ```
 //!
+//! [Cache](struct.Cache.html) is thread-safe and implements [Clone](std::marker::Clone), which provides a
+//! replica pointing to the same underlying storage.
+//!
+//! ```ignore
+//! std::thread::spawn(|| {
+//!     let user_ids = user_ids.clone();
+//!     // ^ receives same updates
+//! });
+//! ```
 #![allow(dead_code)]
 use arc_swap::{ArcSwap, Guard};
 use futures_ticker::Ticker;
