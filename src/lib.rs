@@ -129,9 +129,8 @@ where
                     }
                 });
 
-                ticker.detach();
-
                 Cache {
+                    ticker: Arc::new(ticker),
                     value: read,
                     phantom: std::marker::PhantomData::default(),
                 }
@@ -148,6 +147,7 @@ where
     R: Refresh<Value = V>,
 {
     value: Arc<ArcSwap<V>>,
+    ticker: Arc<Task<()>>,
     phantom: std::marker::PhantomData<(R, V)>,
 }
 
