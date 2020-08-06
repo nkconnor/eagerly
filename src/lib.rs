@@ -4,7 +4,7 @@
 //!
 //! # Example Usage
 //!
-//! ```no_run
+//! ```ignore
 //!   let user_ids = Cache<Vec<u32>, _> =
 //!     cache(|| async {
 //!         vec![1,2,3] // expensive database call happens here
@@ -121,8 +121,9 @@ where
                     }
                 });
 
+                ticker.detach();
+
                 Cache {
-                    ticker,
                     value: read,
                     phantom: std::marker::PhantomData::default(),
                 }
@@ -132,13 +133,12 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cache<V, R>
 where
     V: Sync + Send,
     R: Refresh<Value = V>,
 {
-    ticker: Task<()>,
     value: Arc<ArcSwap<V>>,
     phantom: std::marker::PhantomData<(R, V)>,
 }
@@ -158,12 +158,31 @@ mod tests {
 
     use super::*;
     use futures::future;
+    use std::time::{Duration, Instant};
 
     #[test]
-    fn account_should_increase_over_time() {
+    fn test_clone_underlying() {
+        smol::run(async {
+            let start = Instant::now();
+
+            let a = cache(|| async { Instant::now() })
+                .frequency(Duration::from_millis(100))
+                .load()
+                .await;
+
+            std::thread::sleep(Duration::from_millis(1000));
+
+            let b = a.clone();
+
+            assert_eq!(**b.read(), **a.read());
+            assert!((**b.read()).elapsed().as_secs() < start.elapsed().as_secs());
+        });
+    }
+
+    #[test]
+    fn test_cache_increases() {
         // basically just tests that the value is increasing
         // over time (which it should)
-        use std::time::{Duration, Instant};
 
         // A = P * ( 1+ (r/n))^(rt)
         fn value(p: f64, r: f64, n: f64, t: f64) -> f64 {
