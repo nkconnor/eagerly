@@ -1,14 +1,14 @@
 # eagerly
 
-Caches asyncronously retrieved values and refreshes them in the background
-at a pre-determined interval. The cache is backed by [ArcSwap](https://docs.rs/arc-swap/0.4.7/arc_swap/)
+Views asyncronously retrieved values and refreshes them in the background
+at a pre-determined interval. The view is backed by [ArcSwap](https://docs.rs/arc-swap/0.4.7/arc_swap/)
 which provides fast, lock-free reads.
 
 ## Example Usage
 
 ```rust
-  let user_ids = Cache<Vec<u32>, _> =
-    cache(|| async {
+  let user_ids = View<Vec<u32>> =
+    view(|| async {
         let user_ids = database_call().await();
         //
     })
@@ -17,7 +17,7 @@ which provides fast, lock-free reads.
       .await;
 ```
 
-[Cache](struct.Cache.html) is thread-safe and implements [Clone](std::marker::Clone), which provides a
+[View](struct.Cache.html) is thread-safe and implements [Clone](std::marker::Clone), which provides a
 replica pointing to the same underlying storage.
 
 ```rust

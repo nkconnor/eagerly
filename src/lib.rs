@@ -5,7 +5,7 @@
 //! # Example Usage
 //!
 //! ```ignore
-//!   let user_ids = View<Vec<u32>, _> =
+//!   let user_ids = View<Vec<u32>> =
 //!     view(|| async {
 //!         let user_ids = database_call().await();
 //!         //
