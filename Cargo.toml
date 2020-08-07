@@ -3,7 +3,10 @@ name = "eagerly"
 version = "0.0.1"
 authors = ["nkconnor <nicholas.k.connor@gmail.com>"]
 edition = "2018"
-
+description = "Eagerly cached values that are periodically refreshed"
+repository = "https://github.com/nkconnor/eagerly"
+documentation = "https://docs.rs/eagerly"
+readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

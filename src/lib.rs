@@ -120,6 +120,9 @@ where
                 // with up-to date data
                 use futures::stream::StreamExt;
 
+                // this should never complete, but,
+                // can we return it to let the user spawn
+                // their own task?
                 let ticker = Task::spawn(async move {
                     let mut tick = Ticker::new(freq);
 
