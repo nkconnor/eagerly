@@ -1,12 +1,12 @@
-//! Caches asyncronously retrieved values and refreshes them in the background
-//! at a pre-determined interval. The cache is backed by [ArcSwap](https://docs.rs/arc-swap/0.4.7/arc_swap/)
+//! Views asyncronously retrieved values and refreshes them in the background
+//! at a pre-determined interval. The view is backed by [ArcSwap](https://docs.rs/arc-swap/0.4.7/arc_swap/)
 //! which provides fast, lock-free reads.
 //!
 //! # Example Usage
 //!
 //! ```ignore
-//!   let user_ids = Cache<Vec<u32>, _> =
-//!     cache(|| async {
+//!   let user_ids = View<Vec<u32>, _> =
+//!     view(|| async {
 //!         let user_ids = database_call().await();
 //!         //
 //!     })
@@ -15,7 +15,7 @@
 //!       .await;
 //! ```
 //!
-//! [Cache](struct.Cache.html) is thread-safe and implements [Clone](std::marker::Clone), which provides a
+//! [View](struct.Cache.html) is thread-safe and implements [Clone](std::marker::Clone), which provides a
 //! replica pointing to the same underlying storage.
 //!
 //! ```ignore
@@ -32,9 +32,9 @@ use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
-/// Creates a cache builder using the provided refresh
-/// that will be called to load and replenish the cache.
-pub fn cache<V: Sync + Send + 'static, R: Refresh<Value = V> + Sync + Send + 'static>(
+/// Creates a view builder using the provided refresh
+/// that will be called to load and replenish the view.
+pub fn view<V: Sync + Send + 'static, R: Refresh<Value = V> + Sync + Send + 'static>(
     r: R,
 ) -> Builder<V, R> {
     Builder::new(r)
@@ -105,18 +105,18 @@ where
         }
     }
 
-    /// Performs an initial load of the cache and creates
+    /// Performs an initial load of the view and creates
     /// the interval timer that will periodically do a refresh.
     ///
     /// **Panics** if either the load function or frequency were not specified.
-    pub async fn load(self) -> Cache<V> {
+    pub async fn load(self) -> View<V> {
         match (self.refresh, self.frequency) {
             (Some(load), Some(freq)) => {
-                // initial cache load
+                // initial view load
                 let value = load.refresh().await;
                 let write = Arc::new(ArcSwap::new(Arc::new(value)));
                 let read = write.clone();
-                // background timer that will replenish the cache
+                // background timer that will replenish the view
                 // with up-to date data
                 use futures::stream::StreamExt;
 
@@ -129,7 +129,7 @@ where
                     }
                 });
 
-                Cache {
+                View {
                     ticker: Arc::new(ticker),
                     value: read,
                     phantom: std::marker::PhantomData::default(),
@@ -141,7 +141,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Cache<V>
+pub struct View<V>
 where
     V: Sync + Send,
 {
@@ -150,7 +150,7 @@ where
     phantom: std::marker::PhantomData<V>,
 }
 
-impl<V> Cache<V>
+impl<V> View<V>
 where
     V: Sync + Send,
 {
@@ -172,7 +172,7 @@ mod tests {
         smol::run(async {
             let start = Instant::now();
 
-            let a = cache(|| async { Instant::now() })
+            let a = view(|| async { Instant::now() })
                 .frequency(Duration::from_millis(100))
                 .load()
                 .await;
@@ -187,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cache_increases() {
+    fn test_view_increases() {
         // basically just tests that the value is increasing
         // over time (which it should)
 
@@ -203,7 +203,7 @@ mod tests {
         let start = Instant::now();
 
         smol::run(async {
-            let account = cache(move || {
+            let account = view(move || {
                 let elapsed = start.elapsed().as_millis() as f64;
                 let v = value(principal, rate, n, elapsed / 1000_f64);
                 future::ready(v)
@@ -227,7 +227,7 @@ mod tests {
     #[ignore]
     fn test_throughput() {
         let task = async {
-            let a = cache(|| Timer::new(Duration::from_millis(100)))
+            let a = view(|| Timer::new(Duration::from_millis(100)))
                 .frequency(Duration::from_millis(500))
                 .load()
                 .await;
@@ -256,7 +256,7 @@ mod tests {
         println!("Reads/Sec (MM): {}, Writes/Sec: .5", rate);
 
         let task = async {
-            let a = cache(|| Timer::new(Duration::from_millis(100)))
+            let a = view(|| Timer::new(Duration::from_millis(100)))
                 .frequency(Duration::from_millis(500))
                 .load()
                 .await;
