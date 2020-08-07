@@ -109,7 +109,7 @@ where
     /// the interval timer that will periodically do a refresh.
     ///
     /// **Panics** if either the load function or frequency were not specified.
-    pub async fn load(self) -> Cache<V, R> {
+    pub async fn load(self) -> Cache<V> {
         match (self.refresh, self.frequency) {
             (Some(load), Some(freq)) => {
                 // initial cache load
@@ -141,20 +141,18 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Cache<V, R>
+pub struct Cache<V>
 where
     V: Sync + Send,
-    R: Refresh<Value = V>,
 {
     value: Arc<ArcSwap<V>>,
     ticker: Arc<Task<()>>,
-    phantom: std::marker::PhantomData<(R, V)>,
+    phantom: std::marker::PhantomData<V>,
 }
 
-impl<V, R> Cache<V, R>
+impl<V> Cache<V>
 where
     V: Sync + Send,
-    R: Refresh<Value = V>,
 {
     pub fn read(&self) -> Guard<'static, Arc<V>> {
         self.value.load()
