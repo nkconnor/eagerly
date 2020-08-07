@@ -164,6 +164,7 @@ mod tests {
 
     use super::*;
     use futures::future;
+    use smol::Timer;
     use std::time::{Duration, Instant};
 
     #[test]
@@ -220,5 +221,75 @@ mod tests {
                 value = curr;
             }
         })
+    }
+
+    #[test]
+    #[ignore]
+    fn test_throughput() {
+        let task = async {
+            let a = cache(|| Timer::new(Duration::from_millis(100)))
+                .frequency(Duration::from_millis(500))
+                .load()
+                .await;
+
+            let start = Instant::now();
+            let mut handles = vec![];
+
+            for _ in 0..16 {
+                let b = a.clone();
+                let th = std::thread::spawn(move || {
+                    for _ in 0..300_000_000 {
+                        let _ = **b.read();
+                    }
+                });
+
+                handles.push(th);
+            }
+
+            for h in handles {
+                h.join().unwrap();
+            }
+
+            (16 * 300_000_000) as f64 / (start.elapsed().as_millis() as f64 / 1000_f64) as f64
+        };
+        let rate = smol::run(task) as f64 / 1_000_000_f64;
+        println!("Reads/Sec (MM): {}, Writes/Sec: .5", rate);
+
+        let task = async {
+            let a = cache(|| Timer::new(Duration::from_millis(100)))
+                .frequency(Duration::from_millis(500))
+                .load()
+                .await;
+
+            let start = Instant::now();
+            let mut handles = vec![];
+
+            for _ in 0..16 {
+                let b = a.clone();
+                let th = std::thread::spawn(move || {
+                    for _ in 0..200_000_000 {
+                        let _ = **b.read();
+                    }
+                });
+
+                handles.push(th);
+            }
+
+            for h in handles {
+                h.join().unwrap();
+            }
+            let elapsed = start.elapsed().as_millis();
+            let reads = 16_u128 * 200_000_000_u128;
+
+            (reads, elapsed)
+        };
+
+        let (reads, elapsed) = smol::run(task);
+        let rate = (reads / 1_000_000) as f64 / (elapsed as f64 / 1000.0);
+
+        println!(
+            "Reads/Sec (MM): {}, Writes/Sec: .5, Elapsed: {}, Reads (MM): {}",
+            rate, elapsed, reads
+        );
     }
 }
