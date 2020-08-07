@@ -3,6 +3,7 @@ name = "eagerly"
 version = "0.0.1"
 authors = ["nkconnor <nicholas.k.connor@gmail.com>"]
 edition = "2018"
+license = "MIT or Apache-2.0"
 description = "Eagerly cached values that are periodically refreshed"
 repository = "https://github.com/nkconnor/eagerly"
 documentation = "https://docs.rs/eagerly"
