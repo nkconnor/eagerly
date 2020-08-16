@@ -29,6 +29,7 @@ use arc_swap::{ArcSwap, Guard};
 use futures_ticker::Ticker;
 use smol::Task;
 use std::future::Future;
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -61,7 +62,7 @@ where
     }
 }
 
-impl<V, R> std::default::Default for Builder<V, R>
+impl<V, R> Default for Builder<V, R>
 where
     R: Refresh<Value = V> + Sync + Send,
     V: Sync + Send,
@@ -70,7 +71,7 @@ where
         Builder {
             refresh: None,
             frequency: None,
-            phantom: std::marker::PhantomData::default(),
+            phantom: PhantomData::default(),
         }
     }
 }
@@ -83,7 +84,7 @@ where
 {
     refresh: Option<R>,
     frequency: Option<Duration>,
-    phantom: std::marker::PhantomData<V>,
+    phantom: PhantomData<V>,
 }
 
 impl<V, R> Builder<V, R>
@@ -138,7 +139,7 @@ where
                     phantom: std::marker::PhantomData::default(),
                 }
             }
-            _ => panic!("Refresh function wasn't specified"),
+            _ => panic!("Refresh function or frequency wasn't specified"),
         }
     }
 }
